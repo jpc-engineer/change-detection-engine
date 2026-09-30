@@ -2,7 +2,8 @@ import laspy
 import numpy as np
 import open3d as o3d
 import sys
-from scipy.spatial import ckdtree
+from scipy.spatial import KDTree
+from synthetic_test_data import generate_test_data
 
 def load_and_filter(file_path):
     """
@@ -43,14 +44,14 @@ def find_matching_points(points_a, points_b, xy_tolerance=0.5):
     xy_points_a = points_a[:, :2]
     xy_points_b = points_b[:, :2]
     
-    tree = ckdtree(xy_points_b)
+    tree = KDTree(xy_points_b)
 
     distance, index = tree.query(xy_points_a)
 
     valid_mask = distance <= xy_tolerance
 
     matched_points_a = points_a[valid_mask]
-    matched_points_b = points_b[index[valid_mask]]
+    matched_points_b = points_b[index[valid_mask]] # type: ignore
 
     z_a_matched = matched_points_a[:, 2]
     z_b_matched = matched_points_b[:, 2]
@@ -81,13 +82,17 @@ def identify_significant_changes(matched_points_a, differences, threshold=2.0):
 
 def main():
     # 1. Define the file paths for scan A and B
-    file = "/Users/jamescawthray/Desktop/DEV/2026projects/change-detection-engine/Data/JervisBay201012-LID1-C3-AHD_2906102_56_0002_0002.laz"
-    load_and_filter(file)
+    #file1 = "/Users/jamescawthray/Desktop/DEV/2026projects/change-detection-engine/Data/2011-clean.laz"
+    #file2 = "/Users/jamescawthray/Desktop/DEV/2026projects/change-detection-engine/Data/2018-clean.laz"
+    arr_a, arr_b = generate_test_data()
+    
     # 2. Call load_and_filter for both
     # 3. call find_matching_points
+    matched_a, matched_b, diff = find_matching_points(arr_a, arr_b)
     # 4. call identify_significant_changes
+    ch_count, sig_changes = identify_significant_changes(matched_a, diff)
     # 5. Print the results to the console.
-    pass
+    print(f"Change count: {ch_count}, Significant changes: {sig_changes}")
 
 if __name__ == "__main__":
     main()
