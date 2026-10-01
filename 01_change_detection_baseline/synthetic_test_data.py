@@ -1,4 +1,5 @@
 import numpy as np
+import csv
 
 def generate_test_data():
     
@@ -20,10 +21,20 @@ def generate_test_data():
     points_b[0:5, 2] += 3.0
     # 4. return both arrays
     return points_a, points_b
-   
-    
 
-    
+def save_to_csv(points, filepath):
+    with open(filepath, 'w', newline='', encoding='utf-8') as file:
+        writer = csv.writer(file)
+        writer.writerows(points)
+        return
+   
+
+points1, points2 = generate_test_data()
+
+
+save_to_csv(points1, "p1.csv")
+save_to_csv(points2, "p2.csv")
+
 
     
 
