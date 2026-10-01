@@ -4,6 +4,7 @@ import open3d as o3d
 import sys
 from scipy.spatial import KDTree
 from synthetic_test_data import generate_test_data
+from visualize_changes import visualize_changes
 
 def load_and_filter(file_path):
     """
@@ -93,6 +94,7 @@ def main():
     ch_count, sig_changes = identify_significant_changes(matched_a, diff)
     # 5. Print the results to the console.
     print(f"Change count: {ch_count}, Significant changes: {sig_changes}")
+    visualize_changes(arr_a, sig_changes)
 
 if __name__ == "__main__":
     main()
