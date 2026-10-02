@@ -5,6 +5,8 @@
 #include <cmath>
 #include <limits>
 #include <sstream>
+#include <chrono>
+#include <unordered_map>
 
 // Data structure
 struct Point3D {
@@ -47,48 +49,67 @@ std::vector<Point3D> load_points_from_csv(const std::string& file_path) {
     return points;
 }
 
-// 3. Core algorithm (like matching points in load.py)
+// GRID BUILDER
+// map a 2D grid coordinate (cell_x, cell_y) to a list of pointers to points in B
+// To make it easy for the unordered_map, we combine cell_x and cell_y into a single long long "key".
+std::unordered_map<long long, std::vector<const Point3D*>> build_spatial_grid(
+    const std::vector<Point3D>& points_b, float cell_size)
+    {
+        std::unordered_map<long long, std::vector<const Point3D*>> grid;
+        // 1. iterate through points_b using standard index loop for (size_t i=0 etc) so we can get the memoryaddress `&points_b[i]`
+        for (size_t i = 0; i < points_b.size(); i++) {
+            // 2. Calculate the grid cell X and Y:
+            int cell_x = static_cast<int>(std::floor(points_b[i].x / cell_size));
+            int cell_y = static_cast<int>(std::floor(points_b[i].y / cell_size));
+            // 3. combine them into a unique key:
+            // (the multiplier ensures X and Y dont overlap)
+            long long key = (static_cast<long long>(cell_x) * 1000000) + cell_y;
+
+            // 4. Push the memory address of the point into the grids bucket:
+            // gid[key].push_back(&points_b[i]);
+            grid[key].push_back(&points_b[i]);
+        }
+    
+        return grid;
+    }
+
+// OPTIMISED SEARCH
 std::vector<Point3D> find_significant_changes(
     const std::vector<Point3D>& points_a,
-    const std::vector<Point3D>& points_b,
+    const std::unordered_map<long long, std::vector<const Point3D*>>& grid,
     float xy_tolerance,
-    float z_threshold) {
-
+    float z_threshold,
+    float cell_size)
+    {
         std::vector<Point3D> changes;
-        float xy_square_tol = xy_tolerance * xy_tolerance;
+        float xy_tol_sq = xy_tolerance * xy_tolerance;
 
-        //1. Look at each point in scan A one by one.
         for (const auto& pt_a : points_a) {
-            // 2. inner loop setup: before searching B, reset our 'best match' trackers
-            float min_dist_sq = std::numeric_limits<float>::max(); // start with infinity
-            float best_match_z = 0.0f;
+            int cell_x = static_cast<int>(std::floor(pt_a.x / cell_size));
+            int cell_y = static_cast<int>(std::floor(pt_a.y / cell_size));
 
-            // 3. INNER LOOP: search all points in scan B to find the closest one to pt_a
-            for (const auto& pt_b : points_b) {
-                float dx = pt_a.x - pt_b.x;
-                float dy = pt_a.y - pt_b.y;
-                float dist_sq = (dx * dx) + (dy * dy); // squared distance
+            long long key = (static_cast<long long>(cell_x) * 1000000) + cell_y;
 
-                // if this point in B is closer than any we've seen so far, remember it.
-                if (dist_sq < min_dist_sq) {
-                    min_dist_sq = dist_sq;
-                    best_match_z = pt_b.z;
-                }
-            }
+            auto it = grid.find(key);
 
-            // 4. POST INNER LOOP: we have now checked every point in B
-            // did we find a match that is horizontally close enough?
-            if (min_dist_sq <= xy_square_tol) {
-                // 5. check if the Z difference is significant
-                float z_diff = std::abs(pt_a.z - best_match_z);
+            if (it != grid.end()) {
+                for (const Point3D* pt_b_ptr : it->second) {
+                    float dx = pt_a.x - pt_b_ptr->x;
+                    float dy = pt_a.y - pt_b_ptr->y;
+                    float dist_sq = (dx * dx) + (dy * dy);
 
-                if (z_diff > z_threshold) {
-                    // 6. Its a match AND a significant change. save it.
-                    changes.push_back(pt_a);
+                    if (dist_sq <= xy_tol_sq) {
+                        float z_diff = std::abs(pt_a.z - pt_b_ptr->z);
+
+                        if(z_diff > z_threshold) {
+                            changes.push_back(pt_a);
+                            break;
+                        }
+                    }
                 }
             }
         }
-       return changes;
+        return changes;
     }
 
 int main() {
@@ -101,9 +122,23 @@ int main() {
     std::vector<Point3D> points_b = load_points_from_csv(path2);
     //3. print how many points were loaded.
     std::cout << "Loaded " << points_a.size() << " points." << std::endl;
+    std::cout << "Loaded " << points_b.size() << " points." << std::endl;
     //4. call find_significant changes.
-    auto changes = find_significant_changes(points_a, points_b, 0.5f, 2.0f);
+    float cell_size = 0.1f;
+    auto start_time = std::chrono::high_resolution_clock::now();
+    auto grid = build_spatial_grid(points_b, cell_size);
+    auto changes = find_significant_changes(points_a, grid, 0.002f, 2.0f, cell_size);
+    auto end_time = std::chrono::high_resolution_clock::now();
+    // calculate the duration in milliseconds
+    std::chrono::duration<double, std::milli> duration = end_time - start_time;
+
+    std::cout << "\nDetected changes at these locations:" << std::endl;
+    for (size_t i = 0; i < changes.size(); i++) {
+        std::cout << "Change " << i+1 << ": X=" << changes[i].x << ", Y=" << changes[i].y << ", Z=" << changes[i].z << std::endl;
+    }
     //5. print the count of changes found.
     std::cout << "C++ Engine found " << changes.size() << " significant changes." << std::endl;
+    std::cout << "Processing time: " << duration.count() << " milliseconds." << std::endl;
+
    return 0;
 }
