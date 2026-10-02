@@ -53,14 +53,42 @@ std::vector<Point3D> find_significant_changes(
     const std::vector<Point3D>& points_b,
     float xy_tolerance,
     float z_threshold) {
-        /*
-        1. Iterate through every point in points_a
-        2. for each point in A, find the closest point in points_b (based on x_y distance)
-        3. If the x,y distance is <= xy_tolerance, calculate the z difference
-        4. If the Z difference is > z_threshold, add this point to our results vector
-        5. return the results vector
-        */
-       return {};
+
+        std::vector<Point3D> changes;
+        float xy_square_tol = xy_tolerance * xy_tolerance;
+
+        //1. Look at each point in scan A one by one.
+        for (const auto& pt_a : points_a) {
+            // 2. inner loop setup: before searching B, reset our 'best match' trackers
+            float min_dist_sq = std::numeric_limits<float>::max(); // start with infinity
+            float best_match_z = 0.0f;
+
+            // 3. INNER LOOP: search all points in scan B to find the closest one to pt_a
+            for (const auto& pt_b : points_b) {
+                float dx = pt_a.x - pt_b.x;
+                float dy = pt_a.y - pt_b.y;
+                float dist_sq = (dx * dx) + (dy * dy); // squared distance
+
+                // if this point in B is closer than any we've seen so far, remember it.
+                if (dist_sq < min_dist_sq) {
+                    min_dist_sq = dist_sq;
+                    best_match_z = pt_b.z;
+                }
+            }
+
+            // 4. POST INNER LOOP: we have now checked every point in B
+            // did we find a match that is horizontally close enough?
+            if (min_dist_sq <= xy_square_tol) {
+                // 5. check if the Z difference is significant
+                float z_diff = std::abs(pt_a.z - best_match_z);
+
+                if (z_diff > z_threshold) {
+                    // 6. Its a match AND a significant change. save it.
+                    changes.push_back(pt_a);
+                }
+            }
+        }
+       return changes;
     }
 
 int main() {
@@ -69,11 +97,13 @@ int main() {
     std::string path1 = "/Users/jamescawthray/Desktop/DEV/2026projects/change-detection-engine/Data/p1.csv";
     std::string path2 = "/Users/jamescawthray/Desktop/DEV/2026projects/change-detection-engine/Data/p2.csv";
     //2. call load_points_from_csv on both
-    std::vector<Point3D> points = load_points_from_csv(path1);
-    std::cout << "Loaded " << points.size() << " points." << std::endl;
+    std::vector<Point3D> points_a = load_points_from_csv(path1);
+    std::vector<Point3D> points_b = load_points_from_csv(path2);
     //3. print how many points were loaded.
+    std::cout << "Loaded " << points_a.size() << " points." << std::endl;
     //4. call find_significant changes.
+    auto changes = find_significant_changes(points_a, points_b, 0.5f, 2.0f);
     //5. print the count of changes found.
-    
+    std::cout << "C++ Engine found " << changes.size() << " significant changes." << std::endl;
    return 0;
 }
