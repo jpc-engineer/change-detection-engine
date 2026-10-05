@@ -1,0 +1,36 @@
+
+# Build directory 
+build/
+
+# Compiled binaries and libraries
+*.so
+*.dylib
+*.dll
+*.o
+*.a
+
+# Python
+__pycache__/
+*.pyc
+*.pyo
+venv/
+.venv/
+
+# CMake generated files
+CMakeCache.txt
+CMakeFiles/
+cmake_install.cmake
+Makefile
+
+# IDE files
+.vscode/
+.idea/
+*.swp
+*.swo
+
+# macOS
+.DS_Store
+
+# Data files (too large for GitHub's 100MB limit)
+Data/*.laz
+Data/*.las
