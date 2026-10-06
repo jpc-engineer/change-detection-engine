@@ -36,7 +36,7 @@ def train_model():
     optimizer = optim.Adam(model.parameters(), lr=0.001)
 
     # 5. training loop
-    num_epochs = 50
+    num_epochs = 200
     for epoch in range(num_epochs):
         model.train()
         running_loss = 0.0
@@ -74,6 +74,8 @@ def train_model():
     accuracy = 100 * correct / total
     print(f"\nTest Accuracy: {accuracy:.2f}%")
 
+    torch.save(model.state_dict(), 'change_classifier.pth')
+    print("Model weight saved to 'change_classifier.pth'")
     return model
 
 if __name__ == "__main__":

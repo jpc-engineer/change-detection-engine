@@ -7,7 +7,7 @@ class ChangeClassifier(nn.Module):
 
         #1. first linear layer:
         # maps 3 input features to 16 hidden neurons
-        self.fc1 = nn.Linear(in_features=input_features, out_features=16)
+        self.fc1 = nn.Linear(in_features=input_features, out_features=32)
 
         #2. Activation function:
         # Adds non-linearity
@@ -15,7 +15,7 @@ class ChangeClassifier(nn.Module):
 
         #3. second linear layer: 
         # maps 16 hidden neurons to 3 output classes
-        self.fc2 = nn.Linear(in_features=16, out_features=num_classes)
+        self.fc2 = nn.Linear(in_features=32, out_features=num_classes)
 
     def forward(self, x):
         # Pass the input 'x' through the first linear layer

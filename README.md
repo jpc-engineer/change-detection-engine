@@ -39,3 +39,13 @@ Tested with synthetic data: Successfully detected 5 out of 5 deliberately modifi
 - 50,000 points processed in ~160ms from Python
 - Same performance as native C++ (zero overhead from Python bridge)
 
+## 4: Intelligent Change Classification with PyTorch
+
+### Architecture
+- **AI**: Used a lightweight Multi-Layer Perceptron (MLP) instead of a black-box 3D CNN.
+- **Features**: Classifies changes based on 3 interpretable geometric features: `z_diff`, `local_density`, and `z_variance`.
+- **Classes**: `0 = Sensor Noise`, `1 = Tree Fall`, `2 = New Structure`.
+
+### Results
+- Achieved **>95% test accuracy** on synthetic data.
+- Inference correctly classifies scenarios with >95% confidence.
